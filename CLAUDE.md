@@ -1,48 +1,48 @@
 # AI × Web3 School 学习仓库
 
 ## 仓库用途
-记录 AI × Web3 School Cohort 0 的学习过程，包括笔记、实践代码、Handbook 反馈和打卡记录。
+记录 AI × Web3 School Cohort 0 的学习过程，包括笔记、实践、Handbook 反馈和打卡记录。
 
 ## 目录结构
 
 ```
 ai-web3-school-cohort-0/
+├── README.md
+├── profile.md                # 学员画像
+├── learning-plan.md          # 个人学习计划
+├── daily/                    # 每日学习笔记（YYYY-MM-DD.md）
+├── tasks/                    # 任务记录
+├── experiments/              # 实验和实践代码
+├── hackathon/                # Hackathon 相关
+├── submissions/              # 打卡提交记录
+├── templates/
+│   ├── daily-note.md         # 每日笔记模板
+│   └── task-note.md          # 任务笔记模板
+├── checkins/
+│   └── template.md           # 打卡草稿模板
 ├── notes/                    # 学习笔记（按周组织）
 │   ├── week1-ai-basics/      # Week 1：LLM、Prompt、Context、Agent
-│   ├── week2-ai-basics/      # Week 2：AI 基础续
-│   ├── week3-web3-basics/    # Week 3：Network、Cryptography
-│   ├── week4-web3-basics/    # Week 4：Wallet、Smart Contract
-│   ├── week5-bridge/         # Week 5：AI × Web3 交叉
-│   ├── week6-bridge/         # Week 6：AI × Web3 交叉续
-│   ├── week7-frontier/       # Week 7：前沿探索
-│   └── week8-project/        # Week 8：项目构思
-├── practice/                 # 实践代码和操作记录
+│   ├── week2-web3-basics/    # Week 2：Network、Cryptography、Wallet、Smart Contract
+│   ├── week3-ai-web3-bridge/ # Week 3：AI × Web3 交叉概念
+│   └── week4-project/        # Week 4：项目构思与设计
 ├── handbook-feedback/        # 阅读 Handbook 的问题、建议、卡点记录
-├── checkins/                 # 每日打卡草稿
-└── project/                  # Week 7-8 项目设计文档
+└── projects/                 # 项目设计文档和原型
 ```
 
 ## 命名约定
 
-- 笔记文件：`YYYY-MM-DD-主题关键词.md`（如 `2026-05-19-llm-basics.md`）
-- 打卡文件：`YYYY-MM-DD-checkin.md`
-- 实践记录：`practice/topic-name/README.md` + 相关代码文件
-- Handbook 反馈：`handbook-feedback/YYYY-MM-DD-chapter-name.md`
+- 每日笔记：`daily/YYYY-MM-DD.md`
+- 学习笔记：`notes/weekN-topic/YYYY-MM-DD-主题.md`
+- 打卡草稿：`checkins/YYYY-MM-DD.md`
+- Handbook 反馈：`handbook-feedback/YYYY-MM-DD-章节名-简短描述.md`
 
 ## 内容约束
 
-- **不放**：API key、私钥、钱包助记词、个人隐私信息
-- **不放**：临时调试文件、截图（除非必要）
+- **不放**：API key、私钥、钱包助记词、个人隐私信息、.env 文件
 - **放**：学习笔记、概念理解、操作步骤、代码片段、问题记录
-
-## 清理规则
-
-- 每周末整理当周笔记，合并碎片笔记为完整文档
-- `practice/` 下完成的实验加 `## 结论` 章节，未完成的标注 `[WIP]`
-- 超过 2 周未更新的 WIP 实践移到 `archive/` 或删除
 
 ## 对应资源
 
 - Handbook：https://aiweb3.school/zh/handbook/
 - WCB 课程页面：https://web3career.build/zh/programs/AI-Web3-School
-- 学习计划：见仓库根目录 `../learning-plan-draft.md`（本地）或课程计划文档
+- WCB Learning 页面：https://web3career.build/zh/programs/AI-Web3-School#tab=learning
