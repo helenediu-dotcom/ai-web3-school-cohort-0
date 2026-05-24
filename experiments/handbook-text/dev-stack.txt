@@ -1,0 +1,125 @@
+首页 
+ zh 
+ 开发栈（Dev Stack） 
+ 开发栈（Dev Stack） 
+
+ 约 2576 字 大约 9 分钟 
+ 2026-05-12 
+
+ Web3 开发栈不是一组随机工具名，而是一条从写合约、测合约、部署合约、连接钱包、调用合约到监控结果的工程链路。工具选型的目标是让链上开发更可验证、更可复现、更少事故。
+ 为什么要学这个 
+ 写一个 Web3 demo 很容易：接钱包、调合约、发交易。但真正做项目时，你会马上遇到合约编译、测试、部署脚本、环境变量、RPC、前端 SDK、链切换、合约验证、权限管理和监控。
+ 开发栈的作用不是让你收集更多工具，而是把开发流程变成可重复的系统。一个项目至少要做到：本地能跑、测试能复现、部署有记录、前端调用明确、合约地址可追踪。
+ 工具链越清楚，链上执行越可控。 
+ 可以先把一条最小开发链路拆成六步：
+ 在本地或浏览器 IDE 写出合约。
+ 编译合约，得到 bytecode 和 ABI。
+ 在本地链或测试网部署合约。
+ 写测试覆盖核心状态变化和权限边界。
+ 前端用合约地址和 ABI 读取或发送交易。
+ 在区块浏览器验证源码、交易和事件。
+ 这些步骤缺一环，后面都会变成排查成本。比如前端拿错 ABI，会出现参数编码错误；部署地址没有版本记录，会让用户和开发者不知道自己到底在和哪份合约交互；测试只覆盖 happy path，则权限和失败分支很容易漏掉。
+ 第一性原理 
+ Web3 工具链的核心是把不可逆执行前移到可测试、可模拟、可审查的流程里。 
+ 链上交易一旦成功，后悔成本很高。因此开发工具要尽量把错误暴露在本地、测试网、模拟环境和 code review 阶段，而不是等到主网上线后再发现。
+ 本地优先复现 ：合约逻辑、部署脚本和前端调用都应该能在本地或测试网跑通。
+ 地址和 ABI 要版本化 ：前端调用的到底是哪份合约，必须能追踪。
+ 安全库不是免审计 ：OpenZeppelin 等库降低基础风险，但组合逻辑仍要自己验证。
+ 知识节点 
+ Remix 
+ 难度：初级。 Remix 适合快速理解 Solidity、部署小合约和观察合约调用流程。
+ Remix 是浏览器里的 Solidity IDE。它可以编写、编译、部署和调试合约，适合入门、教学、原型和快速验证。
+ 它的优势是低门槛，不需要先搭完整工程。但真实项目仍然需要进入 Git、测试框架、部署脚本和 CI，否则很难复现和协作。
+ 你可以把 Remix 当成“合约实验台”。最适合用它做三件事：
+ 快速复制一段 Solidity 代码，看能不能编译。
+ 在 JavaScript VM 或测试网部署合约，观察构造函数、函数调用和 event。
+ 用 Deploy & Run 面板理解 read 和 write 调用的区别。
+ Remix 不适合长期替代工程化 repo。只要项目开始多人协作，就应该把合约放进 Git 仓库，并用 Hardhat 或 Foundry 固化测试和部署流程。
+ 相关 topic
+ Remix Documentation ：官方文档，适合入门 Remix 工作区、编译器、Deploy & Run、debugger 和插件。
+ Remix Online IDE ：浏览器版 IDE，可以直接写、编译和部署 Solidity 合约。
+
+ Hardhat 
+ 难度：中级。 Hardhat 适合 JavaScript/TypeScript 项目，把合约开发接进测试、脚本和前端工程。
+ Hardhat 提供本地开发网络、编译、测试、部署脚本和插件生态。对前端团队来说，它和 TypeScript、ethers、CI 的结合比较自然。
+ 学习 Hardhat 的重点不是记命令，而是理解本地链、测试网、部署脚本、合约验证和环境变量如何组成完整开发流程。
+ Hardhat 更像是“合约工程框架”。一个典型 repo 会包含：
+ contracts/ ：Solidity 合约源码。
+ test/ ：TypeScript 或 Solidity 测试。
+ ignition/ 或 scripts/ ：部署模块和脚本。
+ hardhat.config.ts ：网络、编译器、插件和变量配置。
+ artifacts/ ：编译生成的 ABI、bytecode 和 metadata。
+ 如果你的项目需要和前端、后端、CI 紧密协作，Hardhat 通常比只用 Remix 更容易把流程固定下来。
+ 相关 topic
+ Hardhat Documentation ：官方文档，重点看 getting started、testing、deploying、configuration variables 和 contract verification。
+
+ Foundry 
+ 难度：中级。 Foundry 更偏命令行和 Solidity-native 测试，适合高强度合约开发和快速反馈。
+ Foundry 常用工具包括 forge 、 cast 、 anvil 。它可以用 Solidity 写测试，运行速度快，也适合做 fuzz testing、脚本部署和链上状态交互。
+ 如果你更关注合约逻辑、测试深度和命令行工作流，Foundry 是非常重要的工具。
+ Foundry 的几个常见入口：
+ forge test ：运行合约测试。
+ forge build ：编译合约。
+ anvil ：启动本地测试链。
+ cast call ：读取链上合约。
+ cast send ：发送交易调用合约。
+ 它特别适合训练“先写测试，再改合约”的习惯。对安全敏感的合约来说，能快速跑单元测试、fuzz test 和 fork test，比只在 UI 上点几次更可靠。
+ 相关 topic
+ Foundry Book ：官方文档，适合学习 forge 、 cast 、 anvil 、fuzz testing 和 fork testing。
+
+ OpenZeppelin 
+ 难度：中级。 OpenZeppelin 提供常用合约标准和安全组件，但不能替代对业务逻辑的审查。
+ OpenZeppelin Contracts 包含 ERC-20、ERC-721、AccessControl、Ownable、Pausable 等常见模块。使用成熟库可以减少重复造轮子，也能避免很多基础实现错误。
+ 但危险在于“用了库就安全”的错觉。权限组合、升级模式、参数设置、外部调用和经济设计仍然可能出问题。
+ 一个常见例子：你可以用 OpenZeppelin 的 ERC-20 实现 token，但仍然要自己决定谁能 mint、是否能 pause、owner 是否可以转移、升级权限是否有 timelock。这些不是库自动帮你做出的产品决策。
+ 相关 topic
+ 智能合约（Smart Contract） ：先理解合约状态、ABI、事件和升级风险。
+ OpenZeppelin Contracts ：官方合约库文档，适合学习 ERC 标准实现、AccessControl、Ownable、Pausable 等模块。
+ OpenZeppelin Upgrades ：了解 proxy 升级流程和升级合约的风险边界。
+
+ viem / wagmi 
+ 难度：中级。 viem 和 wagmi 主要解决前端与链交互的问题：读合约、写合约、管理账户、处理网络和缓存。
+ viem 是 TypeScript 以太坊接口库，强调类型安全和底层调用能力。wagmi 则面向 React 应用，提供钱包连接、账户状态、合约读写和 hooks。
+ 前端接链时，最容易出问题的是状态不一致：钱包网络、前端配置、合约地址、RPC 返回、交易 pending 状态都可能不同步。好的 SDK 只能降低复杂度，不能替你设计清楚用户流程。
+ 在前端里，至少要把四类状态分开：
+ 钱包是否已连接。
+ 用户当前在哪条链。
+ 合约读取结果是否正在加载或已过期。
+ 写交易处于等待签名、已广播、等待确认、成功或失败的哪一步。
+ 如果这些状态混在一个按钮里，用户会很难判断自己是在“连接钱包”“签名授权”还是“等待交易上链”。
+ 相关 topic
+ viem Documentation ：学习 TypeScript 方式读取链、编码调用、发送交易和处理链上数据。
+ wagmi Documentation ：学习 React 应用里的钱包连接、账户状态、合约读写和交易状态管理。
+
+ 一条具体工具链怎么串起来 
+ 假设你要做一个最小投票合约，可以这样组合工具：
+ 用 Remix 写第一版 Voting.sol ，先确认语法和基本调用流程。
+ 把合约迁移到 Hardhat 或 Foundry repo。
+ 写测试覆盖：创建投票、重复投票、投票结束、非管理员操作失败。
+ 用本地链部署，记录地址和 ABI。
+ 用 viem 或 wagmi 写前端：读取候选项、发起投票交易、展示 pending 和 confirmed 状态。
+ 部署到测试网后，在区块浏览器验证源码，并检查 event 是否能被正确查询。
+ 这个流程看起来比“直接写页面调合约”慢，但它能让错误更早暴露。Web3 项目真正耗时间的地方，往往不是写第一版，而是上线后发现合约地址错了、ABI 不匹配、权限没测、交易状态没处理。
+ 在 AI x Web3 中的位置 
+ AI 可以显著提升 Web3 开发效率：解释 ABI、生成部署脚本、补测试、排查交易失败、总结合约权限。但 AI 参与开发栈后，验证流程反而要更明确。
+ 如果 Agent 能运行 forge test 、读取部署配置、调用 cast 或生成前端合约调用代码，它就必须受到 repo workflow、测试、权限和 secret 管理约束。链上开发不是普通代码生成，高风险命令需要人工确认。
+ 最小实践 
+ 搭一个最小 Web3 开发链路：
+ 用 Remix 部署一个极简计数器合约，包含 count() 、 increment() 和 CountChanged event。
+ 用 Hardhat 或 Foundry 建一个本地工程，并写测试覆盖初始值和 increment() 后的状态变化。
+ 记录合约地址、ABI、部署网络、部署账号和交易哈希。
+ 用 viem 或 wagmi 从前端读取 count() ，再发起一次 increment() 交易。
+ 在区块浏览器或本地日志里确认 event 被正确发出。
+ 写下这条链路中哪些信息必须进版本控制，哪些必须放在 .env 或密钥管理里。
+ 扩展阅读 
+ Remix Documentation ：适合从浏览器 IDE 入门 Solidity 编译、部署和调试。
+ Hardhat Documentation ：学习 TypeScript/JavaScript 合约开发、测试和部署流程。
+ Foundry Book ：学习 forge 、 cast 、 anvil 和 Solidity-native 测试工作流。
+ OpenZeppelin Contracts ：查看常见合约标准、安全组件和访问控制模块。
+ viem Documentation ：学习 TypeScript 方式读取链、发送交易和调用合约。
+ wagmi Documentation ：学习 React 应用中的钱包连接、账户状态和合约交互。
+
+ 编辑此页 
+
+ 上一页 智能合约（Smart Contract） 
+ 下一页 网络（Network）

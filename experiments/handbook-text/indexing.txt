@@ -1,0 +1,83 @@
+首页 
+ zh 
+ 索引（Indexing） 
+ 索引（Indexing） 
+
+ 约 1330 字 大约 4 分钟 
+ 2026-05-12 
+
+ 链上数据是公开的，但不等于好用。Indexing 的作用，是把区块、交易、事件和合约状态整理成产品、分析工具和 AI Agent 能快速查询的结构化数据。
+ 为什么要学这个 
+ 一个合约可以发出很多 event，一条链每天会产生大量区块和交易。你当然可以直接通过 RPC 读取，但如果要做用户历史、排行榜、协议看板、风控监控、Agent 上下文，就需要稳定的数据索引层。
+ Indexing 解决的不是“有没有数据”，而是“能不能按产品需要快速、准确、可回放地查询数据”。
+ 链上是事实来源，索引层是可用数据层。 
+ 第一性原理 
+ 产品需要的是面向问题的数据模型，而不是原始区块流。 
+ 区块链按区块和交易组织数据，用户和产品却关心“这个地址的仓位”“这个协议的 TVL”“这个订单是否成交”“这个 Agent 执行过哪些动作”。索引层负责把底层事实转换成这些查询对象。
+ 事件是重要入口 ：合约 event 是索引器构建状态的主要信号。
+ RPC 不是数据库 ：RPC 适合读取链状态和发送交易，不适合承载所有复杂历史查询。
+ 索引要能重放 ：合约升级、reorg、bug 修复时，需要从某个区块重新构建数据。
+ 知识节点 
+ Event Indexing 
+ 难度：初级。 Event Indexing 是监听合约日志，把链上动作整理成可查询记录。
+ 例如合约发出 Transfer 、 OrderCreated 、 Deposit 、 Withdraw 、 VoteCast ，索引器可以把这些 event 转成数据库表或搜索索引。前端再查询“某个用户所有订单”或“某个池子的最近存款”。
+ 设计 event 时要考虑后续查询：
+ event 是否包含关键地址；
+ 是否需要 indexed 参数；
+ 是否能从 event 还原业务状态；
+ 失败交易不会产生成功 event；
+ 合约升级后 event 是否兼容。
+ 相关 topic
+ 智能合约（Smart Contract） ：先理解 event 为什么是合约向外部系统留下的日志。
+
+ Subgraph 
+ 难度：中级。 Subgraph 是用声明式方式描述如何索引合约事件，并通过 GraphQL 暴露查询接口。
+ The Graph 的 subgraph 通常包括三部分：要监听的合约和事件、事件到实体的 mapping、GraphQL schema。它适合构建协议数据 API，例如 token、pool、swap、position、vote。
+ Subgraph 的价值是让开发者不用从零写整套 indexer。但它仍然需要维护：合约地址变更、事件结构变化、reorg、同步延迟和 schema 设计都会影响数据质量。
+ 相关 topic
+ The Graph Subgraphs ：了解 subgraph、schema、mapping 和 GraphQL 查询。
+
+ RPC 
+ 难度：初级。 RPC 是应用和节点交互的接口，用来读取链状态、查询日志、估算 gas 和发送交易。
+ RPC 很重要，但它不是万能索引服务。你可以用 eth_call 读取当前合约状态，用 eth_getLogs 查询事件日志，用 eth_sendRawTransaction 广播交易。但如果你频繁扫大量历史日志，公共 RPC 很容易限流或变慢。
+ 常见 RPC 问题包括：
+ rate limit；
+ 节点不同步；
+ archive 数据不可用；
+ 多 RPC 返回不一致；
+ 查询区块范围过大；
+ WebSocket 连接不稳定。
+ Data Pipeline 
+ 难度：高级。 Data Pipeline 把链上数据、链下数据、索引结果和业务事件组合成可分析、可监控、可供 AI 使用的数据系统。
+ 一个完整 pipeline 可能包括：
+ RPC 或节点数据源；
+ event listener；
+ 解码 ABI；
+ 数据库写入；
+ reorg 处理；
+ 数据校验和补偿任务；
+ API / GraphQL / vector store；
+ dashboard、alert 和 Agent context。
+ AI x Web3 项目尤其需要关注数据来源。Agent 如果拿到的是过期索引或错误解码结果，后续推理再强也会建立在错误事实上。
+ 在 AI x Web3 中的位置 
+ AI Agent 需要上下文，而链上上下文通常来自索引层。交易历史、合约事件、用户仓位、协议状态、风险信号，都不适合每次临时从原始区块里搜索。
+ 好的索引层应该给 Agent 提供结构化、带来源、带时间戳、可回溯的数据。模型负责解释和推理，索引层负责提供事实。
+ 最小实践 
+ 做一个事件索引设计：
+ 选择一个简单合约，例如投票、计数器或 NFT mint。
+ 列出它应该发出的 event。
+ 设计一张查询表，例如 votes 、 transfers 或 mints 。
+ 标出每个字段来自哪个 event 参数或交易字段。
+ 写出如何处理 reorg、重复事件和合约升级。
+ 完成后再问：如果这个数据要给 AI Agent 使用，需要附带哪些来源字段和更新时间？
+ 扩展阅读 
+ Ethereum JSON-RPC API ：理解读取链状态、查询日志和发送交易的底层接口。
+ Ethereum Events and Logs ：理解后端如何监听链上事件。
+ The Graph Subgraphs ：学习 subgraph 的 schema、mapping 和查询方式。
+ Substreams Documentation ：了解高吞吐链上数据 pipeline 的另一种方式。
+ Dune Docs ：适合用 SQL 分析链上数据和构建 dashboard。
+
+ 编辑此页 
+
+ 上一页 预言机（Oracle） 
+ 下一页 安全（Security）
