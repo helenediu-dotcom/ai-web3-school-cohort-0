@@ -1,0 +1,28 @@
+{
+  "name": "account-abstraction",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "abitype": "^1.2.4",
+    "dotenv": "^17.4.2",
+    "isows": "^1.0.7",
+    "ox": "^0.11.3",
+    "permissionless": "^0.3.5",
+    "tslib": "^2.8.1",
+    "vie": "^2.1.2",
+    "viem": "^2.51.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
