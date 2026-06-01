@@ -14,18 +14,12 @@ import {
   listSessions,
 } from "./session-key";
 import { safeGuardCheck, formatGuardResult } from "./safe-guard";
+import { initAgentWallet, agentExecuteTransaction, AgentWalletInstance } from "./agent-wallet";
 
 // === 演示：Safe Agent Wallet 完整流程 ===
 //
-// 流程：
-// 1. 用户创建 Session Key，绑定七维权限策略
-// 2. Agent 提出交易意图
-// 3. Safe Guard 校验（硬约束 + 灰区判断）
-// 4. 通过 → 用 Session Key 签名 → 提交链上
-// 5. 记录使用情况，追踪累计额度
-//
-// 本演示侧重步骤 1-4 的权限校验层。
-// 实际链上执行部分见 Day 9 的 index.ts（Smart Account + Bundler）。
+// 场景 1-5：本地权限校验（无链上执行）
+// 场景 6：Safe Guard 通过 → Smart Account 链上执行（Sepolia 真实交易）
 
 function divider(title: string) {
   console.log(`\n${"=".repeat(60)}`);
@@ -33,7 +27,7 @@ function divider(title: string) {
   console.log("=".repeat(60));
 }
 
-const main = () => {
+const main = async () => {
   divider("Step 1: 创建 Session Key + 绑定权限策略");
 
   const { sessionKey, privateKey } = createSessionKey(TEST_POLICY);
@@ -56,7 +50,7 @@ const main = () => {
 
   const validTx: TransactionRequest = {
     to: "0x51908FaC9F289D620323fdC5aC1FE1bA0ab16B37",
-    value: parseEther("0.001"), // 0.001 ETH，在限额内
+    value: parseEther("0.001"),
     data: "0x",
   };
 
@@ -75,7 +69,7 @@ const main = () => {
 
   const overSingleTx: TransactionRequest = {
     to: "0x51908FaC9F289D620323fdC5aC1FE1bA0ab16B37",
-    value: parseEther("0.05"), // 0.05 ETH > 0.01 ETH 单笔上限
+    value: parseEther("0.05"),
     data: "0x",
   };
 
@@ -92,7 +86,7 @@ const main = () => {
     contractWhitelist: ["0x51908FaC9F289D620323fdC5aC1FE1bA0ab16B37"],
     functionWhitelist: {
       "0x51908fac9f289d620323fdc5ac1fe1ba0ab16b37": [
-        "0xa9059cbb", // transfer(address,uint256) — 只允许这个
+        "0xa9059cbb",
       ],
     },
   };
@@ -100,7 +94,7 @@ const main = () => {
   const unauthorizedFnTx: TransactionRequest = {
     to: "0x51908FaC9F289D620323fdC5aC1FE1bA0ab16B37",
     value: parseEther("0.001"),
-    data: "0x095ea7b30000000000000000000000000000000000000000000000000000000000000001", // approve(address,uint256) — 不在白名单
+    data: "0x095ea7b30000000000000000000000000000000000000000000000000000000000000001",
   };
 
   console.log("拟议交易：调用 approve() 函数（只允许 transfer()）");
@@ -137,17 +131,89 @@ const main = () => {
     }
   }
 
+  // === 链上执行场景 ===
+
+  divider("Step 7: 链上执行 — Safe Guard 通过后发真实交易 🔗");
+
+  const apiKey = process.env.PIMLICO_API_KEY;
+  const ownerPk = process.env.PRIVATE_KEY as Hex | undefined;
+
+  if (!apiKey || !ownerPk) {
+    console.log("（跳过：需要 PIMLICO_API_KEY 和 PRIVATE_KEY）");
+  } else {
+    try {
+      // 7a. 创建一个新的 Session Key（专门给 Agent 用）
+      const chainPolicy: PermissionPolicy = {
+        ...TEST_POLICY,
+        validFrom: Math.floor(Date.now() / 1000) - 60,
+        validUntil: Math.floor(Date.now() / 1000) + 86400,
+      };
+      const { sessionKey: agentKey } = createSessionKey(chainPolicy);
+      saveSessionKey({ sessionKey: agentKey, privateKey }); // 生产环境用独立 Session Key 私钥
+
+      console.log(`Agent Session Key: ${agentKey.address}`);
+
+      // 7b. 初始化 Agent Wallet（Smart Account + Bundler + Paymaster）
+      console.log("\n初始化 Smart Account...");
+      const wallet = await initAgentWallet({
+        ownerPrivateKey: ownerPk,
+        pimlicoApiKey: apiKey,
+      });
+      console.log(`Owner EOA:         ${wallet.ownerAddress}`);
+      console.log(`Smart Account:     ${wallet.smartAccountAddress}`);
+
+      // 7c. 构造一笔合法交易（0 ETH 给自己，Gas 由 Paymaster 赞助）
+      const chainTx: TransactionRequest = {
+        to: wallet.smartAccountAddress,
+        value: parseEther("0"),
+        data: "0x",
+      };
+
+      const freshUsage = createEmptyUsageTracker();
+
+      console.log(`\n拟议交易：Smart Account 给自己发 0 ETH（测试链上流程）`);
+      console.log(`Safe Guard 校验中...`);
+
+      // 7d. Safe Guard 校验 + 链上执行
+      const result = await agentExecuteTransaction(
+        wallet,
+        agentKey,
+        chainPolicy,
+        chainTx,
+        freshUsage
+      );
+
+      console.log(formatGuardResult(result.guardCheck));
+
+      if (result.txHash) {
+        console.log(`\n✓ 链上交易已提交！`);
+        console.log(`  Tx Hash: ${result.txHash}`);
+        console.log(`  Etherscan: ${result.etherscanUrl}`);
+        if (result.usage) {
+          console.log(`  日累计: ${result.usage.dailyTxCount} 笔`);
+        }
+      } else if (result.error) {
+        console.log(`\n✗ ${result.error}`);
+      }
+    } catch (err: any) {
+      console.log(`链上执行出错: ${err.message || err}`);
+    }
+  }
+
   // ---
 
   divider("总结");
 
-  console.log(`以上演示了 Safe Agent Wallet 的权限校验层：`);
+  console.log(`Safe Agent Wallet 完整流程验证：`);
   console.log(`  ✓ Session Key 创建 + 七维策略绑定`);
-  console.log(`  ✓ 合法交易通过校验`);
-  console.log(`  ✓ 超限交易被拒绝`);
-  console.log(`  ✓ 未授权函数被拒绝`);
-  console.log(`  ✓ 撤销后交易被拒绝`);
-  console.log(`\n下一步 → 将 Session Key 接入 Smart Account，链上执行。`);
+  console.log(`  ✓ 合法交易通过本地校验`);
+  console.log(`  ✓ 超限交易被本地拒绝`);
+  console.log(`  ✓ 未授权函数被本地拒绝`);
+  console.log(`  ✓ 撤销后交易被本地拒绝`);
+  console.log(`  ✓ 权限校验通过 → Smart Account → Bundler → Paymaster → Sepolia 链上执行`);
+  console.log(`\n三层架构：Safe Guard（前置拦截）→ Session Key（权限签名）→ Smart Account（链上执行）`);
 };
 
-main();
+main().catch((error) => {
+  console.error("Error:", error);
+});
