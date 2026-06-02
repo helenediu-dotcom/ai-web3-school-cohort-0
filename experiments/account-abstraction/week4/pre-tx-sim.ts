@@ -147,16 +147,21 @@ export async function runPreTxSimulation(
 
   // B 路径：bundler gas 预估
   const gasPromise = (async () => {
-    // 获取实时 gas 价格
-    const { fast: gasPrice } =
-      await wallet.pimlicoClient.getUserOperationGasPrice();
-
     let callGasLimit = 200_000n; // fallback
     let verificationGasLimit = 0n;
     let preVerificationGas = 0n;
     let paymasterSponsored = false;
+    // fallback gas price（bundler 不可用时使用）
+    let maxFeePerGasBig = 50_000_000_000n; // 50 gwei
+    let maxPriorityFeePerGasBig = 1_000_000_000n; // 1 gwei
 
     try {
+      // 获取实时 gas 价格
+      const { fast: gasPrice } =
+        await wallet.pimlicoClient.getUserOperationGasPrice();
+      maxFeePerGasBig = BigInt(gasPrice.maxFeePerGas);
+      maxPriorityFeePerGasBig = BigInt(gasPrice.maxPriorityFeePerGas);
+
       const estimateResult =
         await wallet.pimlicoClient.estimateUserOperationGas({
           account: wallet.smartAccount,
@@ -182,11 +187,9 @@ export async function runPreTxSimulation(
         paymasterSponsored = false;
       }
     } catch {
-      // gas 预估失败，使用 fallback
+      // bundler 不可用，使用 fallback 值
     }
 
-    const maxFeePerGasBig = BigInt(gasPrice.maxFeePerGas);
-    const maxPriorityFeePerGasBig = BigInt(gasPrice.maxPriorityFeePerGas);
     const gasLimit =
       callGasLimit + verificationGasLimit + preVerificationGas;
     const estimatedTotalGas = gasLimit * maxFeePerGasBig;
@@ -237,11 +240,19 @@ export async function runPreTxSimulation(
     : "";
   const summary = `将发送 ${valueEth} ETH 到 ${toShort}，gas ~${gasResult.estimatedTotalEth} ETH${sponsorNote}`;
 
+  const riskLevel = computeRiskLevel({
+    callSim: callResult,
+    gasEstimate: gasResult,
+    summary,
+    riskLevel: "low", // temporary, will be replaced by computeRiskLevel
+    warnings,
+  });
+
   return {
     callSim: callResult,
     gasEstimate: gasResult,
     summary,
-    riskLevel: "low", // computeRiskLevel 覆盖
+    riskLevel,
     warnings,
   };
 }
