@@ -14,7 +14,7 @@
     "ignoreDeprecations": "6.0"
   },
   "include": ["week4/**/*.ts"],
-  "exclude": [],
+  "exclude": ["node_modules"],
   "ts-node": {
     "compilerOptions": {
       "module": "commonjs"
