@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { createPublicClient, http, Hex } from "viem";
+import { createPublicClient, http, Hex, PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { toSimpleSmartAccount } from "permissionless/accounts";
@@ -7,6 +7,8 @@ import { createPimlicoClient } from "permissionless/clients/pimlico";
 import { SessionKey } from "./session-key";
 import { PermissionPolicy, TransactionRequest, UsageTracker, recordUsage } from "./permission-policy";
 import { safeGuardCheck, GuardCheck } from "./safe-guard";
+import { runPreTxSimulation, computeRiskLevel, SimulationReport } from "./pre-tx-sim";
+import { getUserConfirmation, ConfirmationFn } from "./confirmation";
 
 // === Agent Wallet：权限层 + 链上执行层的桥接 ===
 
@@ -18,18 +20,30 @@ export interface AgentWalletConfig {
 }
 
 export interface AgentWalletInstance {
+  publicClient: PublicClient;
   pimlicoClient: ReturnType<typeof createPimlicoClient>;
   smartAccount: Awaited<ReturnType<typeof toSimpleSmartAccount>>;
   smartAccountAddress: Hex;
   ownerAddress: Hex;
 }
 
+export interface AgentExecuteOptions {
+  /** 跳过交互确认（测试/CI 用），默认 false */
+  autoConfirm?: boolean;
+  /** 可注入确认函数（默认 getUserConfirmation） */
+  confirmationFn?: ConfirmationFn;
+}
+
 export interface AgentTransactionResult {
   guardCheck: GuardCheck;
+  /** Pre-transaction 模拟结果（Safe Guard 通过后生成） */
+  simulation?: SimulationReport;
   txHash?: Hex;
   etherscanUrl?: string;
   usage?: UsageTracker;
   error?: string;
+  /** 用户是否确认了此交易（非链上最终状态）。autoConfirm 时为 true。 */
+  confirmed?: boolean;
 }
 
 // 初始化 Agent Wallet（Smart Account + Pimlico Client）
@@ -62,6 +76,7 @@ export async function initAgentWallet(
   });
 
   return {
+    publicClient,
     pimlicoClient,
     smartAccount: simpleAccount,
     smartAccountAddress: simpleAccount.address,
@@ -75,8 +90,11 @@ export async function agentExecuteTransaction(
   session: SessionKey,
   policy: PermissionPolicy,
   tx: TransactionRequest,
-  usage: UsageTracker
+  usage: UsageTracker,
+  options: AgentExecuteOptions = {}
 ): Promise<AgentTransactionResult> {
+  const { autoConfirm = false, confirmationFn = getUserConfirmation } = options;
+
   // 1. Safe Guard 校验
   const guardCheck = safeGuardCheck(session, policy, tx, usage);
 
@@ -91,10 +109,37 @@ export async function agentExecuteTransaction(
     };
   }
 
-  // 2. 获取 Gas 价格（Pimlico v1 要求预填充）
+  // 2. Pre-transaction Simulation
+  const fromBalance = await wallet.publicClient.getBalance({
+    address: wallet.smartAccountAddress,
+  });
+
+  const simWallet = {
+    smartAccount: {
+      client: wallet.publicClient,
+    },
+    smartAccountAddress: wallet.smartAccountAddress,
+    pimlicoClient: wallet.pimlicoClient,
+  };
+  const simulation = await runPreTxSimulation(simWallet, tx, fromBalance);
+  simulation.riskLevel = computeRiskLevel(simulation);
+
+  // 3. 用户确认
+  const confirmed = await confirmationFn(simulation, autoConfirm);
+
+  if (!confirmed) {
+    return {
+      guardCheck,
+      simulation,
+      confirmed: false,
+      error: "用户拒绝此交易",
+    };
+  }
+
+  // 4. 获取 Gas 价格（Pimlico v1 要求预填充）
   const { fast: gasPrice } = await wallet.pimlicoClient.getUserOperationGasPrice();
 
-  // 3. 提交链上（gas 预填充 + paymaster 赞助）
+  // 5. 提交链上（gas 预填充 + paymaster 赞助）
   try {
     const userOpHash = await wallet.pimlicoClient.sendUserOperation({
       account: wallet.smartAccount,
@@ -113,13 +158,17 @@ export async function agentExecuteTransaction(
 
     return {
       guardCheck,
+      simulation,
       txHash,
       etherscanUrl: `https://sepolia.etherscan.io/tx/${txHash}`,
       usage: newUsage,
+      confirmed: true,
     };
   } catch (err: any) {
     return {
       guardCheck,
+      simulation,
+      confirmed: true,
       error: `链上执行失败：${err.message || err}`,
     };
   }

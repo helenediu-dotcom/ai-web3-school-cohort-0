@@ -11,9 +11,10 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "types": ["node"],
-    "ignoreDeprecations": "5.0"
+    "ignoreDeprecations": "6.0"
   },
   "include": ["week4/**/*.ts"],
+  "exclude": [],
   "ts-node": {
     "compilerOptions": {
       "module": "commonjs"

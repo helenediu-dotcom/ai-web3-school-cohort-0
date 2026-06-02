@@ -13,7 +13,7 @@ interface SimWallet {
         to: Hex;
         value: bigint;
         data: Hex;
-      }) => Promise<{ data: Hex }>;
+      }) => Promise<{ data: Hex | undefined }>;
       getBalance: (args: { address: Hex }) => Promise<bigint>;
       getBlock: () => Promise<{ number: bigint }>;
     };
@@ -21,7 +21,7 @@ interface SimWallet {
   smartAccountAddress: Hex;
   pimlicoClient: {
     getUserOperationGasPrice: () => Promise<{
-      fast: { maxFeePerGas: string; maxPriorityFeePerGas: string };
+      fast: { maxFeePerGas: bigint; maxPriorityFeePerGas: bigint };
     }>;
     estimateUserOperationGas: (args: {
       account: any;
