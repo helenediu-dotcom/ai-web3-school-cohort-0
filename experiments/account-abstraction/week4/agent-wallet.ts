@@ -7,7 +7,7 @@ import { createPimlicoClient } from "permissionless/clients/pimlico";
 import { SessionKey } from "./session-key";
 import { PermissionPolicy, TransactionRequest, UsageTracker, recordUsage } from "./permission-policy";
 import { safeGuardCheck, GuardCheck } from "./safe-guard";
-import { runPreTxSimulation, computeRiskLevel, SimulationReport } from "./pre-tx-sim";
+import { runPreTxSimulation, SimulationReport } from "./pre-tx-sim";
 import { getUserConfirmation, ConfirmationFn } from "./confirmation";
 
 // === Agent Wallet：权限层 + 链上执行层的桥接 ===
@@ -110,9 +110,14 @@ export async function agentExecuteTransaction(
   }
 
   // 2. Pre-transaction Simulation
-  const fromBalance = await wallet.publicClient.getBalance({
-    address: wallet.smartAccountAddress,
-  });
+  let fromBalance: bigint;
+  try {
+    fromBalance = await wallet.publicClient.getBalance({
+      address: wallet.smartAccountAddress,
+    });
+  } catch {
+    fromBalance = 0n; // degraded accuracy but pipeline continues
+  }
 
   const simWallet = {
     smartAccount: {
@@ -122,7 +127,6 @@ export async function agentExecuteTransaction(
     pimlicoClient: wallet.pimlicoClient,
   };
   const simulation = await runPreTxSimulation(simWallet, tx, fromBalance);
-  simulation.riskLevel = computeRiskLevel(simulation);
 
   // 3. 用户确认
   const confirmed = await confirmationFn(simulation, autoConfirm);
