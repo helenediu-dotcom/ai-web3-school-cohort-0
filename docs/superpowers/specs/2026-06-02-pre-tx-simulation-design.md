@@ -108,6 +108,19 @@ interface SimulationReport {
 - 两个路径 `Promise.all` 并行，互不依赖
 - `paymasterSponsored`：检查 bundler 返回的 `paymasterAndData !== "0x"`
 
+#### `warnings` 生成规则
+
+在 `runPreTxSimulation()` 合并 A/B 两路结果后，按以下规则生成 `warnings`：
+
+| 条件 | 警告内容 |
+|------|----------|
+| `callSim.success === false` | `"交易将 revert：${revertReason}"` |
+| `gasEstimate.estimatedTotalGas > fromBalance` | `"余额不足以支付 gas 费用"` |
+| `gasEstimate.estimatedTotalGas > fromBalance * 0.2` 且余额充足 | `"gas 消耗占余额超过 20%"` |
+| `paymasterSponsored === false` 且 gas > 0.001 ETH | `"无 Paymaster 赞助，需自付 gas"`（可选） |
+
+`computeRiskLevel()` 依赖 `warnings.includes("余额不足")` 判断 `high` 风险，其余警告仅用于展示。
+
 #### `computeRiskLevel()` 判定规则（按优先级）
 
 | 优先级 | 条件 | riskLevel |
