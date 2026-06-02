@@ -15,6 +15,7 @@ import {
 } from "./session-key";
 import { safeGuardCheck, formatGuardResult } from "./safe-guard";
 import { initAgentWallet, agentExecuteTransaction, AgentWalletInstance } from "./agent-wallet";
+import { formatSimulationReport } from "./pre-tx-sim";
 
 // === 演示：Safe Agent Wallet 完整流程 ===
 //
@@ -174,7 +175,7 @@ const main = async () => {
       console.log(`\n拟议交易：Smart Account 给自己发 0 ETH（测试链上流程）`);
       console.log(`Safe Guard 校验中...`);
 
-      // 7d. Safe Guard 校验 + 链上执行
+      // 7d. Safe Guard 校验 → Simulation → 用户确认 → 链上执行
       const result = await agentExecuteTransaction(
         wallet,
         agentKey,
@@ -186,7 +187,8 @@ const main = async () => {
       console.log(formatGuardResult(result.guardCheck));
 
       if (result.txHash) {
-        console.log(`\n✓ 链上交易已提交！`);
+        const confirmNote = result.confirmed ? "用户已确认，" : "";
+        console.log(`\n✓ ${confirmNote}链上交易已提交！`);
         console.log(`  Tx Hash: ${result.txHash}`);
         console.log(`  Etherscan: ${result.etherscanUrl}`);
         if (result.usage) {
@@ -194,6 +196,54 @@ const main = async () => {
         }
       } else if (result.error) {
         console.log(`\n✗ ${result.error}`);
+      }
+
+      // === 场景 8：autoConfirm 快速路径 ===
+
+      divider("Step 8: autoConfirm=true — 跳过交互确认 🚀");
+
+      try {
+        const quickPolicy: PermissionPolicy = {
+          ...TEST_POLICY,
+          validFrom: Math.floor(Date.now() / 1000) - 60,
+          validUntil: Math.floor(Date.now() / 1000) + 86400,
+        };
+        const { sessionKey: quickKey } = createSessionKey(quickPolicy);
+        saveSessionKey({ sessionKey: quickKey, privateKey });
+
+        const quickTx: TransactionRequest = {
+          to: wallet.smartAccountAddress,
+          value: parseEther("0"),
+          data: "0x",
+        };
+
+        const quickUsage = createEmptyUsageTracker();
+
+        console.log("autoConfirm=true，将跳过终端确认直接执行...");
+        const quickResult = await agentExecuteTransaction(
+          wallet,
+          quickKey,
+          quickPolicy,
+          quickTx,
+          quickUsage,
+          { autoConfirm: true }
+        );
+
+        console.log(formatGuardResult(quickResult.guardCheck));
+
+        if (quickResult.simulation) {
+          console.log(formatSimulationReport(quickResult.simulation));
+        }
+
+        if (quickResult.txHash) {
+          console.log(`\n✓ autoConfirm 模式交易已提交！`);
+          console.log(`  Tx Hash: ${quickResult.txHash}`);
+          console.log(`  Etherscan: ${quickResult.etherscanUrl}`);
+        } else if (quickResult.error) {
+          console.log(`\n✗ ${quickResult.error}`);
+        }
+      } catch (err: any) {
+        console.log(`autoConfirm 场景出错: ${err.message || err}`);
       }
     } catch (err: any) {
       console.log(`链上执行出错: ${err.message || err}`);
@@ -210,8 +260,9 @@ const main = async () => {
   console.log(`  ✓ 超限交易被本地拒绝`);
   console.log(`  ✓ 未授权函数被本地拒绝`);
   console.log(`  ✓ 撤销后交易被本地拒绝`);
-  console.log(`  ✓ 权限校验通过 → Smart Account → Bundler → Paymaster → Sepolia 链上执行`);
-  console.log(`\n三层架构：Safe Guard（前置拦截）→ Session Key（权限签名）→ Smart Account（链上执行）`);
+  console.log(`  ✓ Safe Guard → Simulation → Confirm → Smart Account → Sepolia 链上执行`);
+  console.log(`  ✓ autoConfirm 快速路径（跳过交互确认）`);
+  console.log(`\n四层架构：Safe Guard（前置拦截）→ Pre-tx Simulation（新增）→ Session Key（权限签名）→ Smart Account（链上执行）`);
 };
 
 main().catch((error) => {
