@@ -14,3 +14,6 @@ Thumbs.db
 
 # Node
 node_modules/
+
+# TypeScript 编译产物（源文件是 .ts，用 ts-node 执行）
+experiments/**/*.js
