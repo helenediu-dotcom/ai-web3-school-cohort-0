@@ -80,8 +80,6 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      sessionCache.delete(sessionId);
-
       const { wallet, tx } = cached;
 
       try {
@@ -102,15 +100,20 @@ export async function POST(request: NextRequest) {
 
         const txHash = receipt.receipt.transactionHash;
 
+        // 成功后清理 session（失败时保留，允许重试）
+        sessionCache.delete(sessionId);
+
         return NextResponse.json({
           stage: "executed",
           txHash,
           etherscanUrl: `https://sepolia.etherscan.io/tx/${txHash}`,
         });
       } catch (err: any) {
+        // 保留 session，用户可重试
+        console.error("[execute] Chain execution failed:", err.message || err);
         return NextResponse.json({
           stage: "execution_failed",
-          error: `链上执行失败：${err.message || err}`,
+          error: "链上执行失败，请重试",
         });
       }
     }
@@ -244,7 +247,7 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     console.error("[execute] Unhandled error:", err.message || err);
     return NextResponse.json(
-      { error: `服务器错误：${err.message || err}` },
+      { error: "服务器内部错误" },
       { status: 500 }
     );
   }
