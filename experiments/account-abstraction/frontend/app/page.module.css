@@ -1,0 +1,83 @@
+/* app/page.module.css */
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding-top: 16px;
+}
+
+.headerTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f0f6fc;
+  margin-bottom: 4px;
+}
+
+.headerSubtitle {
+  font-size: 13px;
+  color: #8b949e;
+}
+
+.address {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 13px;
+  color: #58a6ff;
+  margin-top: 4px;
+}
+
+.confirmSection {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.confirmBtn {
+  flex: 1;
+  padding: 12px;
+  background: #238636;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.confirmBtn:hover {
+  background: #2ea043;
+}
+
+.confirmBtn:disabled {
+  background: #21262d;
+  color: #484f58;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  flex: 1;
+  padding: 12px;
+  background: #21262d;
+  color: #c9d1d9;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cancelBtn:hover {
+  background: #30363d;
+}
+
+.cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.statusBar {
+  text-align: center;
+  padding: 16px;
+  font-size: 13px;
+  color: #8b949e;
+}
