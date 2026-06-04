@@ -52,8 +52,12 @@ export default function Home() {
         setStage("guard_rejected");
       } else if (json.stage === "simulation_failed") {
         setStage("simulation_failed");
-      } else {
+      } else if (json.stage === "guard_passed") {
         setStage("guard_passed");
+      } else {
+        // 缺少 stage（如校验错误返回 { error: "..." }）
+        setStage("execution_failed");
+        setTxError((json as any).error || "未知服务器响应");
       }
     } catch (err: any) {
       setStage("execution_failed");

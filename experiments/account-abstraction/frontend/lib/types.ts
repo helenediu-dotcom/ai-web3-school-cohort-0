@@ -41,8 +41,9 @@ export interface GasEstimate {
   paymasterSponsored: boolean;
 }
 
-export interface Simulation {
-  success: boolean;
+// Discriminated union: success=true 时包含完整报告字段，success=false 时仅包含 error
+export interface SimulationSuccess {
+  success: true;
   callSim: CallSim;
   gasEstimate: GasEstimate;
   summary: string;
@@ -50,6 +51,13 @@ export interface Simulation {
   warnings: string[];
   error?: string;
 }
+
+export interface SimulationFailed {
+  success: false;
+  error?: string;
+}
+
+export type Simulation = SimulationSuccess | SimulationFailed;
 
 // POST /api/execute response
 export type ExecuteResponse =
