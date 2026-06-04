@@ -1,0 +1,68 @@
+/* components/TxResult.module.css */
+.card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.cardSuccess {
+  border-color: #238636;
+}
+
+.cardFailed {
+  border-color: #da3633;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.titleSuccess {
+  color: #3fb950;
+}
+
+.titleFailed {
+  color: #f85149;
+}
+
+.field {
+  margin-bottom: 8px;
+}
+
+.label {
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 2px;
+}
+
+.value {
+  font-size: 14px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  color: #c9d1d9;
+  word-break: break-all;
+}
+
+.link {
+  color: #58a6ff;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.error {
+  color: #f85149;
+  font-size: 13px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #1f1317;
+  border-radius: 6px;
+}
