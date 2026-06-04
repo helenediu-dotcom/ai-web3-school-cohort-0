@@ -19,3 +19,6 @@ node_modules/
 experiments/**/*.js
 # Next.js 配置文件例外
 !experiments/**/next.config.js
+
+# Next.js build output
+**/.next/
