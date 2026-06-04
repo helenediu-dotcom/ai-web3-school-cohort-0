@@ -1,5 +1,6 @@
 # 安全
 .env
+.env.local
 *.key
 *.pem
 secrets/
