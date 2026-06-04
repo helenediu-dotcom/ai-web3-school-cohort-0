@@ -1,0 +1,100 @@
+/* components/GuardResult.module.css */
+.card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.cardPassed {
+  border-color: #238636;
+}
+
+.cardRejected {
+  border-color: #da3633;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.titlePassed {
+  color: #3fb950;
+}
+
+.titleRejected {
+  color: #f85149;
+}
+
+.checks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px solid #21262d;
+}
+
+.checkItem:last-child {
+  border-bottom: none;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.iconPass {
+  color: #3fb950;
+}
+
+.iconFail {
+  color: #f85149;
+}
+
+.level {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.levelHard {
+  background: #1f2329;
+  color: #8b949e;
+  border: 1px solid #30363d;
+}
+
+.levelSoft {
+  background: #1f2329;
+  color: #d29922;
+  border: 1px solid #3b3419;
+}
+
+.detail {
+  color: #c9d1d9;
+  word-break: break-all;
+}
+
+.reviewNotice {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #1f2329;
+  border: 1px solid #d29922;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #d29922;
+}
