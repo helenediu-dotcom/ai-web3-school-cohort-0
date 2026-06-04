@@ -166,6 +166,11 @@ OWNER_PRIVATE_KEY=0x...
 
 如果缺少任一变量，API 返回 500 并提示缺失的变量名。
 
+**安全约束**：
+- 禁止在 `console.log`、错误消息、API response 中输出 `PRIVATE_KEY` 或 `OWNER_PRIVATE_KEY` 的值
+- 日志只输出地址（public key），不输出私钥原文
+- 所有 API response 不包含私钥字段
+
 ## 8. 边界
 
 - Session Key 在后端内存创建（每次请求一个，demo 用），不持久化
