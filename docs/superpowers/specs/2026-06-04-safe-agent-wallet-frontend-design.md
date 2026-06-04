@@ -75,30 +75,41 @@ Request:
 两阶段调用：
 
 1. `autoConfirm: false` → 后端跑 Safe Guard + Simulation，返回 guard 结果和 simulation 报告
-2. 用户确认后，`autoConfirm: true`（同样的 body）→ 后端跳过确认，直接发链上交易
+2. 用户确认后，`autoConfirm: true`（同样的 body）→ 后端直接执行链上交易，**不再重复 guard 和 simulation**（假设前端已展示并通过检查）
 
 Response（`autoConfirm: false`）：
 
 ```json
 {
-  "stage": "guard_passed" | "guard_rejected",
+  "stage": "guard_passed" | "guard_rejected" | "simulation_failed",
   "guardCheck": { "passed": true, "checks": [...], "requiresHumanReview": false },
-  "simulation": { "callSim": {...}, "gasEstimate": {...}, "riskLevel": "low", ... }
+  "simulation": {
+    "success": true,
+    "callSim": {...},
+    "gasEstimate": {...},
+    "riskLevel": "low",
+    "error": "模拟失败原因（仅 simulation_failed 时有）"
+  }
 }
 ```
+
+stage 说明：
+- `guard_passed`：Safe Guard 通过 + Simulation 成功，前端展示报告和确认按钮
+- `guard_rejected`：Safe Guard 硬约束不通过，前端展示拒绝原因，不展示 simulation
+- `simulation_failed`：Safe Guard 通过但 Simulation 执行失败（如 eth_call revert），前端展示 guard 结果 + simulation.error
 
 Response（`autoConfirm: true`）：
 
 ```json
 {
   "stage": "executed" | "execution_failed",
-  "guardCheck": { ... },
-  "simulation": { ... },
   "txHash": "0x...",
-  "etherscanUrl": "...",
-  "error": "..."
+  "etherscanUrl": "https://sepolia.etherscan.io/tx/0x...",
+  "error": "执行失败原因（仅 execution_failed 时有）"
 }
 ```
+
+注意：`autoConfirm: true` 时后端不返回 guardCheck 和 simulation（不重复跑），前端已在第一阶段持有这些数据。
 
 ## 5. 数据流
 
@@ -106,12 +117,15 @@ Response（`autoConfirm: true`）：
 用户填表单
   → POST /api/execute { autoConfirm: false }
     → API Route: initAgentWallet + createSessionKey + safeGuardCheck + runPreTxSimulation
-    → 返回 guardCheck + simulation
-  → 前端渲染 GuardResult + SimulationReport
+    → 返回 guardCheck + simulation + stage
+  → 前端根据 stage 渲染：
+      - guard_rejected → GuardResult（红色拒绝）+ 终止
+      - simulation_failed → GuardResult + SimulationReport（含 error）+ 终止
+      - guard_passed → GuardResult + SimulationReport + 确认按钮
   → 用户点确认
     → POST /api/execute { autoConfirm: true }
-      → API Route: agentExecuteTransaction(autoConfirm: true)
-      → 返回 txHash + etherscanUrl
+      → API Route: 直接构造 UserOp → Bundler → 链上执行（不重复 guard/simulation）
+      → 返回 stage + txHash + etherscanUrl
     → 前端渲染 TxResult
 ```
 
@@ -121,19 +135,45 @@ page.tsx 用一个 state machine：
 
 ```
 idle → loading_guard → guard_result → (用户确认) → loading_execute → tx_result
-                       ↓
-                    guard_rejected（终止）
+              ↓              ↓
+         guard_rejected   simulation_failed
+           （终止）         （终止）
 ```
 
-## 7. 边界
+## 7. 环境变量
+
+`frontend/.env.local`：
+
+```env
+# Pimlico Bundler + Paymaster API Key
+# 从 https://dashboard.pimlico.io 获取
+PIMLICO_API_KEY=pim_xxxx
+
+# Agent Session Key 私钥（0x 开头，64 字符 hex）
+# 用于 Session Key 对 UserOperation 签名
+# 注意：这是 Agent 的受限密钥，不是 EOA 主钱包私钥
+PRIVATE_KEY=0x...
+
+# EOA 主钱包私钥（0x 开头，64 字符 hex）
+# 拥有 Smart Account 的 EOA，用于部署和初始化 Smart Account
+OWNER_PRIVATE_KEY=0x...
+```
+
+变量用途：
+- `PIMLICO_API_KEY`：连接 Pimlico Bundler 和 Paymaster
+- `PRIVATE_KEY`：Agent Session Key 的私钥，用于签名 UserOperation（受限密钥，非主钱包）
+- `OWNER_PRIVATE_KEY`：拥有 Smart Account 的 EOA 私钥，用于初始化和部署 Smart Account
+
+如果缺少任一变量，API 返回 500 并提示缺失的变量名。
+
+## 8. 边界
 
 - Session Key 在后端内存创建（每次请求一个，demo 用），不持久化
-- 需要 PIMLICO_API_KEY 和 PRIVATE_KEY 在 .env 中
 - 不做 WalletConnect / MetaMask 连接（MVP 范围外）
 - 不处理多 Agent、多 Session Key 管理（v0.2）
 - 只支持 Sepolia 测试网
 
-## 8. 技术栈
+## 9. 技术栈
 
 - Next.js (App Router)
 - React 18 + TypeScript
