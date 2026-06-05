@@ -214,6 +214,7 @@ export async function POST(request: NextRequest) {
         fromBalance
       );
     } catch (err: any) {
+      console.error("[execute] Simulation failed:", err.message || err);
       const serialized = serializeBigInt({
         stage: "simulation_failed",
         guardCheck,
@@ -237,10 +238,25 @@ export async function POST(request: NextRequest) {
       simulation,
     });
 
+    // 映射 SimulationReport → 前端 Simulation discriminated union
+    const simulationResponse = simulation.callSim.success
+      ? {
+          success: true as const,
+          callSim: simulation.callSim,
+          gasEstimate: simulation.gasEstimate,
+          summary: simulation.summary,
+          riskLevel: simulation.riskLevel,
+          warnings: simulation.warnings,
+        }
+      : {
+          success: false as const,
+          error: simulation.callSim.revertReason || "链上模拟执行失败",
+        };
+
     const serialized = serializeBigInt({
       stage: "guard_passed",
       guardCheck,
-      simulation,
+      simulation: simulationResponse,
       sessionId: sid,
     });
     return NextResponse.json(serialized);

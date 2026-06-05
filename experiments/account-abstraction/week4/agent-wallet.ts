@@ -54,7 +54,7 @@ export async function initAgentWallet(
 
   const publicClient = createPublicClient({
     chain: sepolia,
-    transport: http("https://sepolia.rpc.thirdweb.com"),
+    transport: http("https://ethereum-sepolia-rpc.publicnode.com"),
   });
 
   const pimlicoTransport = http(
