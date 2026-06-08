@@ -33,8 +33,14 @@
   color: #c9d1d9;
 }
 
-.riskLow {
-  color: #3fb950;
+.riskCritical {
+  color: #f85149;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.riskHigh {
+  color: #f0883e;
   font-weight: 600;
 }
 
@@ -43,9 +49,14 @@
   font-weight: 600;
 }
 
-.riskHigh {
-  color: #f85149;
+.riskLow {
+  color: #3fb950;
   font-weight: 600;
+}
+
+.riskTrivial {
+  color: #8b949e;
+  font-weight: 400;
 }
 
 .warnings {

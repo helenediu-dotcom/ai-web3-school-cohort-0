@@ -1,7 +1,7 @@
 // app/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { AppStage, GuardCheck, Simulation, Phase1Response, Phase2Response } from "@/lib/types";
 import TxForm, { TxFormData } from "@/components/TxForm";
 import GuardResult from "@/components/GuardResult";
@@ -18,6 +18,9 @@ export default function Home() {
   const [txError, setTxError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [lastFormData, setLastFormData] = useState<TxFormData | null>(null);
+  const [autoApproved, setAutoApproved] = useState(false);
+  const [autoApprovalReason, setAutoApprovalReason] = useState<string | null>(null);
+  const autoTriggeredRef = useRef(false);
 
   // Phase 1: 提交交易 → guard + sim
   async function handlePhase1(data: TxFormData) {
@@ -47,6 +50,8 @@ export default function Home() {
       setGuardCheck(json.guardCheck);
       if (json.simulation) setSimulation(json.simulation);
       if (json.sessionId) setSessionId(json.sessionId);
+      setAutoApproved(json.autoApproved ?? false);
+      setAutoApprovalReason(json.autoApprovalReason ?? null);
 
       if (json.stage === "guard_rejected") {
         setStage("guard_rejected");
@@ -109,11 +114,29 @@ export default function Home() {
     setEtherscanUrl(null);
     setTxError(null);
     setSessionId(null);
+    setAutoApproved(false);
+    setAutoApprovalReason(null);
+    autoTriggeredRef.current = false;
   }
 
   function handleReset() {
     handleCancel();
   }
+
+  // 灰区引擎 auto_approve → 自动触发 Phase 2（跳过确认按钮）
+  useEffect(() => {
+    if (
+      stage === "guard_passed" &&
+      autoApproved &&
+      !autoTriggeredRef.current
+    ) {
+      autoTriggeredRef.current = true;
+      const timer = setTimeout(() => {
+        handlePhase2();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [stage, autoApproved]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isLoading = stage === "loading_guard" || stage === "loading_execute";
 
@@ -138,20 +161,33 @@ export default function Home() {
 
       {stage === "guard_passed" && (
         <div className={styles.confirmSection}>
-          <button
-            className={styles.confirmBtn}
-            onClick={handlePhase2}
-            disabled={isLoading}
-          >
-            ④ 确认并执行
-          </button>
-          <button
-            className={styles.cancelBtn}
-            onClick={handleCancel}
-            disabled={isLoading}
-          >
-            取消
-          </button>
+          {autoApproved ? (
+            <>
+              <div className={styles.autoApproveBanner}>
+                🤖 灰区引擎自动通过 — {autoApprovalReason}
+              </div>
+              <div className={styles.autoApproveHint}>
+                即将自动执行...
+              </div>
+            </>
+          ) : (
+            <>
+              <button
+                className={styles.confirmBtn}
+                onClick={handlePhase2}
+                disabled={isLoading}
+              >
+                ④ 确认并执行
+              </button>
+              <button
+                className={styles.cancelBtn}
+                onClick={handleCancel}
+                disabled={isLoading}
+              >
+                取消
+              </button>
+            </>
+          )}
         </div>
       )}
 

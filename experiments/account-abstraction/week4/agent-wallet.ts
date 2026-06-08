@@ -128,10 +128,13 @@ export async function agentExecuteTransaction(
   };
   const simulation = await runPreTxSimulation(simWallet, tx, fromBalance);
 
-  // 3. 用户确认
-  const confirmed = await confirmationFn(simulation, autoConfirm);
+  // 3. 用户确认（传入 Guard + tx 上下文供灰区引擎使用）
+  const confirmResult = await confirmationFn(simulation, autoConfirm, {
+    guardCheck,
+    tx,
+  });
 
-  if (!confirmed) {
+  if (!confirmResult.confirmed) {
     return {
       guardCheck,
       simulation,
@@ -166,13 +169,13 @@ export async function agentExecuteTransaction(
       txHash,
       etherscanUrl: `https://sepolia.etherscan.io/tx/${txHash}`,
       usage: newUsage,
-      confirmed: true,
+      confirmed: confirmResult.confirmed,
     };
   } catch (err: any) {
     return {
       guardCheck,
       simulation,
-      confirmed: true,
+      confirmed: confirmResult.confirmed,
       error: `链上执行失败：${err.message || err}`,
     };
   }

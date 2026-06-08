@@ -1,6 +1,8 @@
 // lib/types.ts — API response types for the frontend
 // 所有 bigint 字段已序列化为 string（JSON 不支持 bigint）
 
+export type RiskLevel = "critical" | "high" | "medium" | "low" | "trivial";
+
 export interface GuardCheckItem {
   name: string;
   passed: boolean;
@@ -47,7 +49,7 @@ export interface SimulationSuccess {
   callSim: CallSim;
   gasEstimate: GasEstimate;
   summary: string;
-  riskLevel: "low" | "medium" | "high";
+  riskLevel: RiskLevel;
   warnings: string[];
   error?: string;
 }
@@ -69,6 +71,10 @@ export interface Phase1Response {
   guardCheck: GuardCheck;
   simulation: Simulation | null;
   sessionId?: string; // guard_passed 时返回，Phase 2 用
+  /** 灰区引擎自动批准（跳过人工确认） */
+  autoApproved?: boolean;
+  /** 自动批准的理由 */
+  autoApprovalReason?: string;
 }
 
 export interface Phase2Response {

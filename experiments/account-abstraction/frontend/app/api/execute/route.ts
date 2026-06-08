@@ -19,6 +19,10 @@ import {
   runPreTxSimulation,
   SimulationReport,
 } from "../../../../week4/pre-tx-sim";
+import {
+  greyZoneEngine,
+  GreyZoneDecision,
+} from "../../../../week4/grey-zone";
 
 // ── Demo-only server-side state ──
 // 生产环境应改用 Redis / DB
@@ -253,11 +257,38 @@ export async function POST(request: NextRequest) {
           error: simulation.callSim.revertReason || "链上模拟执行失败",
         };
 
+    // 灰区决策：medium 风险时运行规则引擎
+    let autoApproved: boolean | undefined;
+    let autoApprovalReason: string | undefined;
+    if (simulation.riskLevel === "medium") {
+      const greyDecision = greyZoneEngine(
+        "medium",
+        guardCheck,
+        tx.value,
+        tx.to
+      );
+      if (greyDecision.decision === "auto_approve") {
+        autoApproved = true;
+        autoApprovalReason = greyDecision.reason;
+      }
+    }
+    // low / trivial 也自动通过（不需引擎判断）
+    if (simulation.riskLevel === "low" || simulation.riskLevel === "trivial") {
+      autoApproved = true;
+      autoApprovalReason =
+        simulation.riskLevel === "trivial"
+          ? "风险极低，静默通过"
+          : "风险低，自动通过";
+    }
+    // critical / high → autoApproved 为 undefined（前端强制人工确认）
+
     const serialized = serializeBigInt({
       stage: "guard_passed",
       guardCheck,
       simulation: simulationResponse,
       sessionId: sid,
+      autoApproved,
+      autoApprovalReason,
     });
     return NextResponse.json(serialized);
   } catch (err: any) {

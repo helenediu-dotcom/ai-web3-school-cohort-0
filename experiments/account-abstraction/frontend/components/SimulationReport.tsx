@@ -23,12 +23,14 @@ export default function SimulationReport({ simulation }: SimulationReportProps) 
   }
 
   const { callSim, gasEstimate } = simulation;
-  const riskClass =
-    simulation.riskLevel === "low"
-      ? styles.riskLow
-      : simulation.riskLevel === "medium"
-        ? styles.riskMedium
-        : styles.riskHigh;
+  const riskClassMap: Record<string, string> = {
+    critical: styles.riskCritical,
+    high: styles.riskHigh,
+    medium: styles.riskMedium,
+    low: styles.riskLow,
+    trivial: styles.riskTrivial,
+  };
+  const riskClass = riskClassMap[simulation.riskLevel] || styles.riskMedium;
 
   return (
     <div className={styles.card}>

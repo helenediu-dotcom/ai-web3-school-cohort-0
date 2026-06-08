@@ -46,6 +46,9 @@ export interface BalanceChange {
   delta: bigint; // 正=收到，负=支出
 }
 
+/** 5 级风险指标 */
+export type RiskLevel = "critical" | "high" | "medium" | "low" | "trivial";
+
 export interface SimulationReport {
   callSim: {
     success: boolean;
@@ -72,8 +75,8 @@ export interface SimulationReport {
 
   /** 一行摘要 */
   summary: string;
-  /** 聚合风险指标 */
-  riskLevel: "low" | "medium" | "high";
+  /** 聚合风险指标（5 级） */
+  riskLevel: RiskLevel;
   /** 风险/警告提示 */
   warnings: string[];
 }
@@ -246,7 +249,7 @@ export async function runPreTxSimulation(
     summary,
     riskLevel: "low", // temporary, will be replaced by computeRiskLevel
     warnings,
-  });
+  }, tx.value);
 
   return {
     callSim: callResult,
@@ -257,27 +260,52 @@ export async function runPreTxSimulation(
   };
 }
 
-// === computeRiskLevel ===
+// === computeRiskLevel（5 级） ===
+//
+// 分级逻辑（按优先级从高到低匹配，命中即停）：
+//   critical — eth_call revert、余额不足以支付 gas
+//   high     — gas 消耗 > 余额 20%、大额转账（> 0.01 ETH）
+//   medium   — 有 warning 但非致命（无 Paymaster、gas 偏高）
+//   low      — 正常交易，无警告
+//   trivial  — 零值简单转账（data = "0x"）
+
+const HIGH_VALUE_THRESHOLD = 10_000_000_000_000_000n; // 0.01 ETH
 
 export function computeRiskLevel(
-  report: SimulationReport
-): "low" | "medium" | "high" {
-  // 优先级 1: call 失败 → high
+  report: SimulationReport,
+  txValue?: bigint
+): RiskLevel {
+  // 优先级 1: call 失败 → critical
   if (!report.callSim.success) {
-    return "high";
+    return "critical";
   }
 
-  // 优先级 2: 余额不足 → high
+  // 优先级 2: 余额不足以支付 gas → critical
   if (report.warnings.some((w) => w.includes("余额不足"))) {
+    return "critical";
+  }
+
+  // 优先级 3: gas 消耗 > 20% 余额 → high
+  if (report.warnings.some((w) => w.includes("gas 消耗占余额超过 20%"))) {
     return "high";
   }
 
-  // 优先级 3: gas 占余额 > 20% → medium
-  if (report.warnings.some((w) => w.includes("gas 消耗占余额超过 20%"))) {
+  // 优先级 4: 大额转账 → high
+  if (txValue !== undefined && txValue > HIGH_VALUE_THRESHOLD) {
+    return "high";
+  }
+
+  // 优先级 5: 有 warning（无 Paymaster 等）→ medium
+  if (report.warnings.length > 0) {
     return "medium";
   }
 
-  // 优先级 4: 其他 → low
+  // 优先级 6: 零值简单转账 → trivial
+  if (txValue !== undefined && txValue === 0n) {
+    return "trivial";
+  }
+
+  // 优先级 7: 其他 → low
   return "low";
 }
 
@@ -287,9 +315,11 @@ export function formatSimulationReport(
   report: SimulationReport
 ): string {
   const riskIcons: Record<string, string> = {
-    low: "🟢 LOW",
+    critical: "🔴 CRITICAL",
+    high: "🟠 HIGH",
     medium: "🟡 MEDIUM",
-    high: "🔴 HIGH",
+    low: "🟢 LOW",
+    trivial: "⚪ TRIVIAL",
   };
 
   const lines: string[] = [];
