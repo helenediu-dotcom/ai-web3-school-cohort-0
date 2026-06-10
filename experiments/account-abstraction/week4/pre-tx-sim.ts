@@ -230,7 +230,7 @@ export async function runPreTxSimulation(
   }
   if (
     !gasResult.paymasterSponsored &&
-    gasResult.estimatedTotalGas > 1_000_000_000_000_000n // 0.001 ETH
+    gasResult.estimatedTotalGas > 1_000_000_000_000n // 0.000001 ETH（降低阈值确保 medium 可达）
   ) {
     warnings.push("无 Paymaster 赞助，需自付 gas");
   }
@@ -295,14 +295,14 @@ export function computeRiskLevel(
     return "high";
   }
 
-  // 优先级 5: 有 warning（无 Paymaster 等）→ medium
-  if (report.warnings.length > 0) {
-    return "medium";
-  }
-
-  // 优先级 6: 零值简单转账 → trivial
+  // 优先级 5: 零值简单转账 → trivial（即使有 warning 也不涉及资金风险）
   if (txValue !== undefined && txValue === 0n) {
     return "trivial";
+  }
+
+  // 优先级 6: 有 warning（无 Paymaster 等）→ medium
+  if (report.warnings.length > 0) {
+    return "medium";
   }
 
   // 优先级 7: 其他 → low

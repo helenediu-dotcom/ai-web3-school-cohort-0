@@ -160,7 +160,7 @@ export function recordUsage(
 
 export const TEST_POLICY: PermissionPolicy = {
   assetWhitelist: [],               // 只允许 ETH
-  maxSingleAmount: parseEther("0.01"),
+  maxSingleAmount: parseEther("0.1"),
   maxDailyAmount: parseEther("0.1"),
   contractWhitelist: [],            // 空 = 不限制合约地址（演示用）
   functionWhitelist: {},
