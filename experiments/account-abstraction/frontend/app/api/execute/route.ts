@@ -66,7 +66,7 @@ function serializeBigInt(obj: unknown): unknown {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { to, value, data, autoConfirm, sessionId } = body;
+    const { to, value, data, autoConfirm, sessionId, debugBalance } = body;
 
     // ── Phase 2: autoConfirm = true, 直接执行 ──
     if (autoConfirm) {
@@ -196,12 +196,21 @@ export async function POST(request: NextRequest) {
 
     // 3. Pre-tx Simulation
     let fromBalance: bigint;
-    try {
-      fromBalance = await wallet.publicClient.getBalance({
-        address: wallet.smartAccountAddress,
-      });
-    } catch {
-      fromBalance = 0n;
+    // debugBalance: 仅用于验证低余额场景（如 gas > 20% 余额 → high）
+    // 生产环境不会传入此字段
+    if (debugBalance !== undefined && debugBalance !== null) {
+      fromBalance = parseEther(String(debugBalance));
+      console.log(
+        `[execute] ⚠ debug balance override: ${debugBalance} ETH`
+      );
+    } else {
+      try {
+        fromBalance = await wallet.publicClient.getBalance({
+          address: wallet.smartAccountAddress,
+        });
+      } catch {
+        fromBalance = 0n;
+      }
     }
 
     let simulation: SimulationReport;
