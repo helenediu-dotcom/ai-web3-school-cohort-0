@@ -18,6 +18,7 @@ node_modules/
 
 # TypeScript 编译产物（源文件是 .ts，用 ts-node 执行）
 experiments/**/*.js
+*.tsbuildinfo
 # Next.js 配置文件例外
 !experiments/**/next.config.js
 
