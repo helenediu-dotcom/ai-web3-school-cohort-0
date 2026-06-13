@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "day9": "node index.js",
-    "week4": "npx ts-node week4/index.ts"
+    "week4": "npx ts-node week4/index.ts",
+    "commerce": "npx ts-node week4/commerce/index.ts"
   },
   "keywords": [],
   "author": "",
